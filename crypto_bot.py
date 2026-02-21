@@ -6,30 +6,33 @@ from pycoingecko import CoinGeckoAPI
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# CONFIG ────────────────────────────────────────────────
+# ────────────────────────────────────────────────
+# CONFIG - CHANGE THESE IF NEEDED
+# ────────────────────────────────────────────────
+
 BOT_TOKEN = "8587733738:AAEZwJz50jL5nutbhm5u6dzzS7vjVkZKSKk"
-YOUR_CHAT_ID = 1973535887
+YOUR_CHAT_ID = 123456789
 
 COINS_TO_SCAN = [
     "bitcoin", "ethereum", "solana", "dogecoin", "cardano",
     "ripple", "binancecoin", "avalanche-2", "polkadot", "chainlink"
 ]
 
-SCAN_INTERVAL_SEC = 180                     # 3 minutes
-PRICE_CHANGE_THRESHOLD = 5.0
-VOLUME_CHANGE_THRESHOLD = 25.0
+SCAN_INTERVAL_SEC = 180                     # Check every 3 minutes
+PRICE_CHANGE_THRESHOLD = 5.0                # % change
+VOLUME_CHANGE_THRESHOLD = 25.0              # % volume spike
 FIB_LEVELS = [1.618, 2.618, 4.236]
 
 cg = CoinGeckoAPI()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-watchlist = {}
+watchlist = {}  # coin_id → data dict
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🚀 Crypto Scanner Bot started!\n\n"
-        "Scanning for pumps/dumps. Alerts to you.\n"
+        "Scanning for pumps/dumps. Alerts sent to you.\n"
         "Commands: /watchlist /status"
     )
 
@@ -104,17 +107,18 @@ async def scanner(context: ContextTypes.DEFAULT_TYPE):
             logger.warning(f"Scan error {coin_id}: {e}")
 
 def main():
-    # Correct for v21+: no .job_queue(True) needed — JobQueue works automatically when used
+    # Simple builder - no extra .job_queue(True)
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("watchlist", watchlist_cmd))
     app.add_handler(CommandHandler("status", status))
 
-    # This line creates and uses JobQueue automatically
+    # This line starts the background job - JobQueue is auto-created here
     app.job_queue.run_repeating(scanner, interval=SCAN_INTERVAL_SEC, first=10)
 
     print("Bot starting...")
+    print("DEBUG: This is the new fixed version - no crash expected!")  # ← debug line
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
